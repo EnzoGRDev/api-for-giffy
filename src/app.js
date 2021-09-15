@@ -7,7 +7,7 @@ const usersRouter = require('./routes/users')
 const favoritesRouter = require('./routes/favorites')
 
 app.use(cors({
-  origin : ["http://127.0.0.1:3000","http://localhost:3000", "192.168.2.206", "*"]
+  origin : ["http://127.0.0.1:3000","http://localhost:3000", "192.168.2.206", "*", "https://giffy-omega-one.vercel.app"]
 }))
 app.use(express.json())
 app.use('/users', usersRouter)
