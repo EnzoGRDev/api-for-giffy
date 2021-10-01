@@ -5,7 +5,7 @@ const favoritesRouter = require('express').Router()
 
 favoritesRouter.get('/:username', async (req,res)=>{
   const {username} = req.params
-  const user = await User.findOne({username})
+  const user = await User.findOne({username}).populate('favorites')
 
   if (!user) return res.status(404).end()
 
