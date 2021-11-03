@@ -10,11 +10,13 @@ favoritesRouter.get('/:username', async (req, res) => {
   const {
     username
   } = req.params;
-  const user = await User.findOne({
+  const user = await User.find({
     username
   }).populate('favorites');
-  if (!user) return res.status(404).end();
-  res.json(user.favorites);
+  if (!user) return res.status(404).json({
+    error: "no existe usuario"
+  });
+  res.status(200).json(user);
 });
 favoritesRouter.post('/', authExtractor, async (req, res) => {
   const {
@@ -27,12 +29,14 @@ favoritesRouter.post('/', authExtractor, async (req, res) => {
     image_high
   } = req.body;
   let newFavorite;
-  const user = await User.findOne({
+  let user = await User.find({
     username
   }).populate('favorites');
-  let favorite = await Favorite.findOne({
+  let favorite = await Favorite.find({
     gif_id
-  });
+  }).populate('users');
+  user = user[0];
+  favorite = favorite[0];
 
   if (!favorite) {
     newFavorite = new Favorite({
@@ -44,7 +48,7 @@ favoritesRouter.post('/', authExtractor, async (req, res) => {
     });
     favorite = await newFavorite.save();
   } else {
-    const isUserInFav = favorite.users.toString().includes(user._id.toString());
+    const isUserInFav = favorite ? await favorite.users.toString().includes(user._id.toString()) : null;
 
     if (!isUserInFav) {
       favorite.users = favorite.users.concat(user._id);
@@ -52,13 +56,17 @@ favoritesRouter.post('/', authExtractor, async (req, res) => {
     }
   }
 
-  let isFavInUser = await user.favorites.toString().includes(favorite._id.toString());
+  let isFavInUser = user ? await user.favorites.toString().includes(favorite._id.toString()) : null;
   if (isFavInUser) return res.status(304).json({
     error: "Ya existe usuario y fav"
   });
   user.favorites = user.favorites.concat(favorite._id);
   const userFavsSaved = await user.save();
-  res.status(201).json(userFavsSaved.favorites);
+  let newsFavoritesOfUser = await User.find({
+    username
+  }).populate("favorites");
+  newsFavoritesOfUser = newsFavoritesOfUser[0];
+  res.status(201).json(newsFavoritesOfUser.favorites);
 });
 favoritesRouter.delete('/:favId', authExtractor, async (req, res) => {
   const {
@@ -67,25 +75,30 @@ favoritesRouter.delete('/:favId', authExtractor, async (req, res) => {
   const {
     favId
   } = req.params;
-  const user = await User.findOne({
+  let user = await User.find({
     username
   });
-  const favorite = await Favorite.findOne({
-    favId
+  let favorite = await Favorite.find({
+    gif_id: favId
+  });
+  user = user[0];
+  favorite = favorite[0];
+  if (!favorite) return res.status(404).json({
+    error: "no existe el favorito"
   });
 
-  const reducerUser = (acumulador, elemento) => {
-    elemento.toString() === favorite._id.toString() ? null : acumulador.push(elemento);
-  };
+  const filterUser = userFav => userFav.toString() !== favorite._id.toString();
 
-  const reducerFav = (acumulador, elemento) => {
-    elemento.toString() === user._id.toString() ? null : acumulador.push(elemento);
-  };
+  const filterFav = favUser => favUser.toString() !== user._id.toString();
 
-  user.favorites = await user.favorites.reduce(reducerUser, []);
-  favorite.users = await favorite.users.reduce(reducerFav, []);
-  const userSaver = await user.save();
-  const favoriteSaver = await favorite.save();
-  res.json(userSaver);
+  user.favorites = await user.favorites.filter(filterUser);
+  favorite.users = await favorite.users.filter(filterFav);
+  const userSaved = await user.save();
+  const favoriteSaved = await favorite.save();
+  let newsFavoritesOfUser = await User.find({
+    username
+  }).populate("favorites");
+  newsFavoritesOfUser = newsFavoritesOfUser[0];
+  res.json(newsFavoritesOfUser.favorites);
 });
 module.exports = favoritesRouter;

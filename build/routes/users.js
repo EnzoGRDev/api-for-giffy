@@ -34,7 +34,7 @@ usersRouter.post('/login', async (req, res) => {
   } = req.body;
   const isUser = await User.findOne({
     username
-  });
+  }).populate("favorites");
   const passCorrect = !isUser ? null : await bcrypt.compare(password, isUser.password);
   if (!passCorrect) return res.status(404).json({
     statusMessage: "usuario o contraseña incorrecto"

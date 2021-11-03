@@ -24,7 +24,7 @@ usersRouter.post('/register', async(req, res)=>{
 
 usersRouter.post('/login', async (req, res)=>{
   const {username, password} = req.body
-  const isUser = await User.findOne({username})
+  const isUser = await User.findOne({username}).populate("favorites")
   const passCorrect = 
     !isUser 
       ? null 
